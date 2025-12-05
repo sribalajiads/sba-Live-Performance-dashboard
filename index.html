@@ -877,13 +877,50 @@ window.mediaMasterAgg = null;
 window.mediaDBAgg     = null;
 window.locationMapDB  = null;
 
-// 🔁 RECENT SESSIONS HISTORY (not by day)
-const SESSION_HISTORY_KEY = "sba_session_metrics_v1";
 let metricsChart = null;
 let mediaPieChart = null;
-
-// 🆕 BOOKING rows cache – expiry banner kosam
 let bookingRowsCache = [];
+
+// 🔁 RECENT SESSIONS HISTORY (for chart only)
+const SESSION_HISTORY_KEY = "sba_session_metrics_v1";
+
+// LOGIN SESSION KEY (no auto logout)
+const SESSION_KEY = "sba_dashboard_session";
+
+/* ---------- DAY-BY-DAY SNAPSHOT HELPERS ---------- */
+function _todayKey() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+function _yesterdayKey() {
+  const yesterday = new Date(Date.now() - 86400 * 1000);
+  return yesterday.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+function saveDailySnapshot(snapshot) {
+  try {
+    const key = "sba_daily_snapshot_v1";
+    let all = JSON.parse(localStorage.getItem(key) || "{}");
+    const today = _todayKey();
+    all[today] = snapshot;
+    const keys = Object.keys(all).sort().slice(-30);
+    const trimmed = {};
+    keys.forEach(k => { trimmed[k] = all[k]; });
+    localStorage.setItem(key, JSON.stringify(trimmed));
+  } catch (e) {
+    console.warn("Snapshot save failed", e);
+  }
+}
+
+function loadYesterdaySnapshot() {
+  try {
+    const key = "sba_daily_snapshot_v1";
+    const all = JSON.parse(localStorage.getItem(key) || "{}");
+    const y = _yesterdayKey();
+    return all[y] || null;
+  } catch (e) {
+    return null;
+  }
+}
 
 /* ---------- METRIC CARD HELPER ---------- */
 function setMetric(idBase, current, previous, format){
@@ -931,7 +968,7 @@ function setMetric(idBase, current, previous, format){
   changeEl.className = "metric-change " + (up ? "trend-up" : "trend-down");
 }
 
-/* ---------- TOP CARDS + RECENT SESSIONS HISTORY ---------- */
+/* ---------- TOP CARDS + DAY-BY-DAY COMPARISON + SESSION HISTORY ---------- */
 function updateTopCards() {
   if (!window.metricsMaster || !window.metricsDB) return;
 
@@ -946,6 +983,23 @@ function updateTopCards() {
 
   const bookingPct = totalUnits ? (bookedUnits / totalUnits) * 100 : 0;
 
+  // 🔹 Yesterday snapshot tho compare
+  const yesterday = loadYesterdaySnapshot();
+  const prev = yesterday ? {
+    totalUnits: Number(yesterday.totalUnits || 0),
+    bookedUnits: Number(yesterday.bookedUnits || 0),
+    availableUnits: Number(yesterday.availableUnits || 0),
+    totalRevenue: Number(yesterday.totalRevenue || 0),
+    bookingPct: Number(yesterday.bookingPct || 0)
+  } : null;
+
+  setMetric("m-total",      totalUnits,    prev ? prev.totalUnits     : null, "number");
+  setMetric("m-booked",     bookedUnits,   prev ? prev.bookedUnits    : null, "number");
+  setMetric("m-available",  availableUnits,prev ? prev.availableUnits : null, "number");
+  setMetric("m-revenue",    totalRevenue,  prev ? prev.totalRevenue   : null, "currency");
+  setMetric("m-percentage", bookingPct,    prev ? prev.bookingPct     : null, "percent");
+
+  // 🔹 Session history chart కోసం (refresh ప్ర‌తి సారి కొత్త point జత)
   let historyArr = [];
   try {
     historyArr = JSON.parse(localStorage.getItem(SESSION_HISTORY_KEY) || "[]");
@@ -953,14 +1007,6 @@ function updateTopCards() {
   } catch {
     historyArr = [];
   }
-
-  const prev = historyArr.length ? historyArr[historyArr.length - 1] : null;
-
-  setMetric("m-total",      totalUnits,    prev ? prev.totalUnits     : null, "number");
-  setMetric("m-booked",     bookedUnits,   prev ? prev.bookedUnits    : null, "number");
-  setMetric("m-available",  availableUnits,prev ? prev.availableUnits : null, "number");
-  setMetric("m-revenue",    totalRevenue,  prev ? prev.totalRevenue   : null, "currency");
-  setMetric("m-percentage", bookingPct,    prev ? prev.bookingPct     : null, "percent");
 
   historyArr.push({
     ts: Date.now(),
@@ -976,8 +1022,18 @@ function updateTopCards() {
   }
 
   localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(historyArr));
-
   renderMetricsChartFromSessions(historyArr);
+
+  // 🔹 Today snapshot save → రేపు compare చేయడానికి
+  const snapshot = {
+    ts: Date.now(),
+    totalUnits,
+    bookedUnits,
+    availableUnits,
+    totalRevenue,
+    bookingPct
+  };
+  saveDailySnapshot(snapshot);
 }
 
 /* ---------- RECENT SESSIONS CHART ---------- */
@@ -1117,43 +1173,7 @@ const DATA_URL =
 const BOOKING_URL =
   "https://opensheet.elk.sh/1SnZydoQAfpZp5jZQmCJPceeyXpp9jnTnC_m7g4DPzPI/BOOKING";
 
-/* ---------- SESSION / LOGIN ---------- */
-const SESSION_KEY = "sba_dashboard_session";
-const SESSION_DURATION = 30 * 60 * 1000;
-let logoutTimer = null;
-
-function startAutoLogoutTimer(ms) {
-  if (logoutTimer) clearTimeout(logoutTimer);
-  logoutTimer = setTimeout(() => {
-    localStorage.removeItem(SESSION_KEY);
-    document.getElementById("dashboard").style.display = "none";
-    document.getElementById("login-screen").style.display = "block";
-    const err = document.getElementById("login-error");
-    if (err) err.textContent = "Session expired. Please login again.";
-  }, ms);
-}
-
-function checkSessionOnLoad() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return;
-    const session = JSON.parse(raw);
-    const loginTime = session.loginTime || 0;
-    const elapsed = Date.now() - loginTime;
-
-    if (elapsed < SESSION_DURATION) {
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("dashboard").style.display = "block";
-      startAutoLogoutTimer(SESSION_DURATION - elapsed);
-      initDashboard();
-    } else {
-      localStorage.removeItem(SESSION_KEY);
-    }
-  } catch {
-    localStorage.removeItem(SESSION_KEY);
-  }
-}
-
+/* ---------- SESSION / LOGIN (NO AUTO-LOGOUT) ---------- */
 function doLogin() {
   const u = document.getElementById("login-user").value.trim();
   const p = document.getElementById("login-pass").value.trim();
@@ -1167,7 +1187,6 @@ function doLogin() {
     err.textContent = "";
     document.getElementById("login-screen").style.display = "none";
     document.getElementById("dashboard").style.display = "block";
-    startAutoLogoutTimer(SESSION_DURATION);
     initDashboard();
   } else {
     err.textContent = "Invalid User ID / Password.";
@@ -1182,9 +1201,18 @@ function logout() {
   document.getElementById("login-pass").value = "";
   const err = document.getElementById("login-error");
   if (err) err.textContent = "";
-  if (logoutTimer) {
-    clearTimeout(logoutTimer);
-    logoutTimer = null;
+}
+
+/* ---------- checkSessionOnLoad (no expiry) ---------- */
+function checkSessionOnLoad() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    initDashboard();
+  } catch {
+    localStorage.removeItem(SESSION_KEY);
   }
 }
 
@@ -1866,13 +1894,12 @@ function buildDashboardFromDataBooking(dataRows, bookingRows) {
           <td class="numeric">₹${medData.revenue.toLocaleString("en-IN")}</td>
         `;
 
-                if (html.includes(`rowspan="${rowsInArea}"`)){
+        if (html.includes(`rowspan="${rowsInArea}"`)){
           html += `
             <td rowspan="${rowsInArea}" class="numeric">${areaBookingPct}%</td>
             <td rowspan="${rowsInArea}" class="numeric">₹${areaData.revenue.toLocaleString("en-IN")}</td>
           `;
         }
-
 
         tr.innerHTML = html;
         areaBody.appendChild(tr);
@@ -2353,6 +2380,8 @@ function downloadExcel(){
 
 function downloadPDF(){ window.print(); }
 
+// ప్రతి 5 నిమిషాలకి data మళ్లీ load అవుతుంది (auto-refresh)
+// auto-logout లేదు, కేవలం initDashboard మాత్రమే call అవుతుంది
 setInterval(()=>{
   const raw = localStorage.getItem(SESSION_KEY);
   if (raw) initDashboard();
