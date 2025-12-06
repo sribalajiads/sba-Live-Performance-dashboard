@@ -1,0 +1,2394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SAB-Media Inventory Live Dashboard</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:400,500,600&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #f3f4f6;
+      --bg-shell: #e5e7eb;
+      --card-bg: #ffffff;
+      --card-bg-soft: #f9fafb;
+      --card-border: rgba(148, 163, 184, 0.7);
+      --primary: #1d4ed8;
+      --primary-soft: rgba(37, 99, 235, 0.08);
+      --accent: #16a34a;
+      --danger: #dc2626;
+      --text-main: #111827;
+      --text-soft: #4b5563;
+      --text-mute: #6b7280;
+      --table-border: #d1d5db;
+      --table-header-bg: #eef2ff;
+      --table-header-bottom: #1d4ed8;
+      --table-row-alt: #f9fafb;
+      --table-row-hover: #e0f2fe;
+      --chip-bg: #f3f4f6;
+      --chip-border: #d1d5db;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    /* ========= ANIMATIONS ========= */
+    @keyframes fadeInPage {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes slideUpSoft {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes scaleInCard {
+      from { opacity: 0; transform: scale(0.96); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes pulseDot {
+      0%,100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(34,197,94,0.35); }
+      50%     { transform: scale(1.2); box-shadow: 0 0 0 7px rgba(34,197,94,0.18); }
+    }
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text-main);
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,0.12), transparent 60%),
+        linear-gradient(to bottom, #f9fafb, #e5e7eb 60%, #e5e7eb);
+      animation: fadeInPage 0.45s ease-out;
+    }
+
+    /* ========== LOGIN ========== */
+    .login-container {
+      max-width: 380px;
+      margin: 80px auto;
+      padding: 26px 28px 28px;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 60%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,0.12), transparent 60%),
+        linear-gradient(145deg, #ffffff, #f3f4f6);
+      box-shadow:
+        0 20px 40px rgba(15, 23, 42, 0.08),
+        0 0 0 1px rgba(148, 163, 184, 0.5);
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+      animation: slideUpSoft 0.6s ease-out;
+    }
+    .login-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      margin-bottom: 10px;
+      background: #f9fafb;
+    }
+    .login-container h2 {
+      margin: 4px 0 3px;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--text-main);
+    }
+    .login-container p {
+      margin: 0 0 14px;
+      color: var(--text-soft);
+      font-size: 0.86rem;
+    }
+    .login-container label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-mute);
+      margin: 10px 0 4px;
+    }
+    .login-container input {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      font-size: 14px;
+      background: #ffffff;
+      color: var(--text-main);
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, transform 0.08s ease;
+    }
+    .login-container input::placeholder {
+      color: #9ca3af;
+    }
+    .login-container input:focus {
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow:
+        0 0 0 1px rgba(37,99,235,0.2),
+        0 0 0 6px rgba(191,219,254,0.7);
+      transform: translateY(-1px);
+    }
+    .login-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 0;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      color: #f9fafb;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      box-shadow: 0 16px 30px rgba(37,99,235,0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+    .login-btn span {
+      font-size: 1.1rem;
+    }
+    .login-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+      box-shadow: 0 22px 40px rgba(37,99,235,0.45);
+    }
+    .login-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 10px 18px rgba(15,23,42,0.15);
+    }
+    .login-footer {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--text-mute);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .login-error {
+      color: var(--danger);
+      font-size: 0.78rem;
+      min-height: 16px;
+      margin-top: 4px;
+    }
+
+    /* ========== DASHBOARD SHELL ========== */
+    .dashboard-shell {
+      padding: 18px 18px 32px;
+    }
+    .dashboard-container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 22px 26px 36px;
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,0.14), transparent 65%),
+        linear-gradient(145deg, #ffffff, #f3f4f6 55%, #f3f4f6);
+      box-shadow:
+        0 22px 50px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(148, 163, 184, 0.6);
+      display: none;
+      animation: slideUpSoft 0.5s ease-out;
+    }
+
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .logo-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-img {
+      height: 60px;
+      border-radius: 18px;
+      padding: 6px 10px;
+      background: radial-gradient(circle at top, #bfdbfe, #60a5fa);
+      box-shadow: 0 12px 26px rgba(37,99,235,0.45);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .logo-img:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 18px 34px rgba(37,99,235,0.5);
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #111827;
+    }
+    .title-sub {
+      margin-top: 3px;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .meta-block {
+      text-align: right;
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+    .last-updated {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    .tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--chip-border);
+      background: var(--chip-bg);
+      font-size: 0.75rem;
+      margin-top: 6px;
+    }
+    .tag-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.35);
+      animation: pulseDot 1.7s ease-out infinite;
+    }
+
+    .top-button-row {
+      text-align: right;
+      margin: 12px 0 16px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .refresh-btn,
+    .download-btn,
+    .logout-btn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f9fafb;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 12px 26px rgba(15,23,42,0.18);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+    .refresh-btn {
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+    }
+    .download-btn {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+    }
+    .download-btn.secondary {
+      background: linear-gradient(135deg, #6b7280, #111827);
+      color: #e5e7eb;
+    }
+    .logout-btn {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+    }
+    .refresh-btn:hover,
+    .download-btn:hover,
+    .logout-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+      box-shadow: 0 18px 32px rgba(15,23,42,0.22);
+    }
+    .refresh-btn:active,
+    .download-btn:active,
+    .logout-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 8px 18px rgba(15,23,42,0.22);
+    }
+
+    /* ========== METRIC CARDS ========== */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+      margin: 10px 0 24px;
+    }
+
+    .metric-card {
+      padding: 14px 14px 12px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.12), transparent 60%),
+        radial-gradient(circle at bottom right, rgba(34,197,94,0.08), transparent 60%),
+        #ffffff;
+      border: 1px solid var(--card-border);
+      box-shadow:
+        0 14px 28px rgba(15,23,42,0.08),
+        0 0 0 1px rgba(209,213,219,0.6);
+      position: relative;
+      overflow: hidden;
+      text-align: left;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.15s ease, background 0.15s ease;
+      animation: scaleInCard 0.4s ease-out both;
+    }
+    .metrics-grid .metric-card:nth-child(1) { animation-delay: 0.05s; }
+    .metrics-grid .metric-card:nth-child(2) { animation-delay: 0.10s; }
+    .metrics-grid .metric-card:nth-child(3) { animation-delay: 0.15s; }
+    .metrics-grid .metric-card:nth-child(4) { animation-delay: 0.20s; }
+    .metrics-grid .metric-card:nth-child(5) { animation-delay: 0.25s; }
+
+    .metric-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(59,130,246,0.16), transparent 55%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(37,99,235,0.7);
+      box-shadow:
+        0 18px 36px rgba(15,23,42,0.14),
+        0 0 0 1px rgba(59,130,246,0.5);
+      background: #f9fafb;
+    }
+    .metric-card:hover::after {
+      opacity: 1;
+    }
+    .metric-label {
+      font-size: 0.78rem;
+      color: var(--text-mute);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 4px;
+    }
+
+    .metric-main{
+      display:flex;
+      align-items:baseline;
+      gap:6px;
+    }
+
+    .metric-value {
+      font-size: 1.7rem;
+      font-weight: 600;
+      margin: 2px 0 4px;
+      color: #111827;
+    }
+
+    .metric-change{
+      font-size:0.8rem;
+      font-weight:500;
+    }
+    .trend-up{ color:var(--accent); }
+    .trend-down{ color:var(--danger); }
+    .trend-neutral{ color:var(--text-mute); }
+
+    .metric-sub {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    /* ========== SECTIONS ========== */
+    section {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 14px 16px 12px;
+      box-shadow:
+        0 14px 30px rgba(15,23,42,0.06),
+        0 0 0 1px rgba(209,213,219,0.9);
+      margin-bottom: 18px;
+      border: 1px solid rgba(209,213,219,0.9);
+      animation: slideUpSoft 0.5s ease-out;
+    }
+    section-header { display:block; }
+    section h2 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #111827;
+    }
+    .section-sub {
+      font-size: 0.75rem;
+      color: var(--text-mute);
+      margin-bottom: 6px;
+    }
+    .section-divider {
+      height: 1px;
+      border-radius: 999px;
+      background: linear-gradient(to right, rgba(37,99,235,0.8), rgba(56,189,248,0.1), rgba(34,197,94,0.7));
+      margin-bottom: 8px;
+      opacity: 0.8;
+    }
+
+    /* ========== TABLES ========== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+      background: #ffffff;
+    }
+    table, th, td { border: 1px solid var(--table-border); }
+    thead {
+      background:
+        linear-gradient(to bottom, var(--table-header-bg), #e5edff);
+    }
+    thead tr { box-shadow: inset 0 -2px 0 var(--table-header-bottom); }
+    th,
+    td {
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 0.82rem;
+      color: #111827;
+    }
+    th {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1f2937;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(2n)   { background:#ffffff; }
+    tbody tr:nth-child(2n+1) { background:var(--table-row-alt); }
+    tbody tr:hover           { background:var(--table-row-hover); }
+    tbody tr { animation: fadeInRow 0.35s ease-out; }
+
+    .numeric {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint {
+      font-size: 0.74rem;
+      color: var(--text-mute);
+      margin-top: 2px;
+    }
+
+    .chart-wrapper{
+      width:100%;
+      max-height:260px;
+    }
+    .chart-wrapper canvas{
+      width:100%;
+      height:100%;
+    }
+
+    /* 🔔 EXPIRY BANNER – SCROLLING */
+    .expiry-banner {
+      margin-top: 4px;
+      margin-bottom: 16px;
+      padding: 6px 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2563eb, #38bdf8); /* blue */
+      color: #0f172a;
+      display: none;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(37,99,235,0.35);
+    }
+
+    .expiry-track {
+      display: inline-flex;
+      align-items: center;
+      gap: 20px;
+      white-space: nowrap;
+      animation: scrollLeft 10s linear infinite; /* slow */
+    }
+
+    .expiry-title {
+      font-weight: 700;
+      padding-left: 16px;
+    }
+
+    .expiry-pill {
+      background: rgba(255,255,255,0.9);
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid #000;
+      color: #000;
+    }
+
+    @keyframes scrollLeft {
+      from { transform: translateX(100%); }
+      to   { transform: translateX(-100%); }
+    }
+
+    @media (max-width: 1200px) {
+      .metrics-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    }
+    @media (max-width: 900px) {
+      .dashboard-container { padding:18px 16px 26px; }
+      .dashboard-header { flex-direction:column; align-items:flex-start; }
+      .metrics-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .top-button-row { justify-content:flex-start; }
+    }
+    @media (max-width: 640px) {
+      .metrics-grid { grid-template-columns:minmax(0,1fr); }
+      .dashboard-shell { padding:10px; }
+      section { padding-inline:10px; }
+      th,td { font-size:0.76rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 🔐 LOGIN SCREEN -->
+<div id="login-screen" class="login-container">
+  <div class="login-pill">
+    <span>🔐</span><span>SBA INTERNAL DASHBOARD</span>
+  </div>
+  <h2>Sign in</h2>
+  <p>Access your live media inventory analytics.</p>
+
+  <label for="login-user">User ID</label>
+  <input type="text" id="login-user" placeholder="Enter User ID" autocomplete="off">
+
+  <label for="login-pass">Password</label>
+  <input type="password" id="login-pass" placeholder="Enter Password">
+
+  <div class="login-error" id="login-error"></div>
+
+  <button class="login-btn" onclick="doLogin()">
+    <span>➡</span><span>Login to Dashboard</span>
+  </button>
+
+  <div class="login-footer">
+    <span>Session: 30 mins auto logout</span>
+    <span style="opacity:0.7;">Sri Balaji Ads</span>
+  </div>
+</div>
+
+<!-- 📊 DASHBOARD -->
+<div class="dashboard-shell">
+  <div class="dashboard-container" id="dashboard">
+
+    <div class="dashboard-header">
+      <div class="logo-wrapper">
+        <img src="Logo.jpeg" class="logo-img" alt="Sri Balaji Ads Logo">
+        <div class="title-block">
+          <h1>SBA MEDIA INVENTORY</h1>
+          <div class="title-sub">Live Performance Dashboard</div>
+        </div>
+      </div>
+
+      <div class="meta-block">
+        <div>Last Updated:</div>
+        <div class="last-updated"><span id="last-updated"></span></div>
+        <div class="tag-chip">
+          <span class="tag-dot"></span><span>Connected to Google Sheets</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-button-row">
+      <button onclick="refreshData()" class="refresh-btn">🔄 Refresh</button>
+      <button onclick="downloadExcel()" class="download-btn">⬇ Export Excel</button>
+      <button onclick="downloadPDF()" class="download-btn secondary">⬇ Save as PDF</button>
+      <button onclick="logout()" class="logout-btn">🚪 Logout</button>
+    </div>
+
+    <!-- 🔔 SCROLLING EXPIRY BANNER -->
+    <div class="expiry-banner" id="expiryBanner">
+      <div class="expiry-track" id="expiryTrack">
+        <span class="expiry-title">⚠ Ending / Ended Campaigns:</span>
+      </div>
+    </div>
+
+    <!-- 🔝 METRIC CARDS -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Total Units</div>
+        <div class="metric-main">
+          <span class="metric-value" id="m-total">-</span>
+          <span class="metric-change" id="m-total-change"></span>
+        </div>
+        <div class="metric-sub">Active media inventory</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Booked Units</div>
+        <div class="metric-main">
+          <span class="metric-value" id="m-booked">-</span>
+          <span class="metric-change" id="m-booked-change"></span>
+        </div>
+        <div class="metric-sub">Currently committed</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Available Units</div>
+        <div class="metric-main">
+          <span class="metric-value" id="m-available">-</span>
+          <span class="metric-change" id="m-available-change"></span>
+        </div>
+        <div class="metric-sub">Ready to allocate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total Booking Revenue</div>
+        <div class="metric-main">
+          <span class="metric-value" id="m-revenue">-</span>
+          <span class="metric-change" id="m-revenue-change"></span>
+        </div>
+        <div class="metric-sub">Master + Net Price (₹)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Booking %</div>
+        <div class="metric-main">
+          <span class="metric-value" id="m-percentage">-</span>
+          <span class="metric-change" id="m-percentage-change"></span>
+        </div>
+        <div class="metric-sub">Booked vs Total Units</div>
+      </div>
+    </div>
+
+    <!-- MEDIA TYPE BOOKING PIE CHART -->
+    <section>
+      <section-header>
+        <h2>Media Type Booking Share (Combined)</h2>
+        <div class="section-sub">
+          Booked units share by media type – Master + DATA + BOOKING combined.
+        </div>
+        <div class="section-divider"></div>
+      </section-header>
+      <div class="chart-wrapper" style="max-height:320px;">
+        <canvas id="mediaPieChart" height="90"></canvas>
+      </div>
+    </section>
+
+    <!-- METRICS TREND CHART -->
+    <section>
+      <section-header>
+        <h2>Key Metrics Trend (Recent Sessions)</h2>
+        <div class="section-sub">Booked units, available units, booking %, and revenue with animated growth graph.</div>
+        <div class="section-divider"></div>
+      </section-header>
+      <div class="chart-wrapper">
+        <canvas id="metricsChart" height="70"></canvas>
+      </div>
+    </section>
+
+    <!-- COMBINED MEDIA TYPE -->
+    <section>
+      <section-header>
+        <h2>Media Type Wise Booking – Combined (Master + DATA + BOOKING)</h2>
+        <div class="section-sub">Single view of all media formats with total units and revenue.</div>
+        <div class="section-divider"></div>
+      </section-header>
+
+      <div style="font-size:0.78rem;font-weight:600;color:var(--text-soft);margin-bottom:4px;">
+        COMBINED (Master + DATA + BOOKING)
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Media Type</th>
+            <th>Total Active Units</th>
+            <th>Booked Units</th>
+            <th>Available Units</th>
+            <th>Booking %</th>
+            <th>Revenue (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-media-type"></tbody>
+      </table>
+    </section>
+
+    <!-- MASTER TABLES -->
+    <section>
+      <section-header>
+        <h2>City Wise Booking (Master Sheet)</h2>
+        <div class="section-sub">Active units and revenue distribution by city.</div>
+        <div class="section-divider"></div>
+      </section-header>
+      <table>
+        <thead>
+          <tr>
+            <th>City</th>
+            <th>Total Active Units</th>
+            <th>Booked Units</th>
+            <th>Available Units</th>
+            <th>Booking %</th>
+            <th>Revenue (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-city"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <section-header>
+        <h2>Area Allotted Executive – Total Revenue (All Regions)</h2>
+        <div class="section-sub">Overall portfolio by area allotted owner.</div>
+        <div class="section-divider"></div>
+      </section-header>
+      <table>
+        <thead>
+          <tr>
+            <th>Area Allotted</th>
+            <th>Active Media</th>
+            <th>Booked Media</th>
+            <th>Available Media</th>
+            <th>Booking %</th>
+            <th>Total Revenue (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-area"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <section-header>
+        <h2>Hyderabad Region – Area Allotted Executive + Media Type Revenue</h2>
+        <div class="section-sub">Deep dive: Hyderabad executives by media type and revenue mix.</div>
+        <div class="section-divider"></div>
+      </section-header>
+      <table>
+        <thead>
+          <tr>
+            <th>Area Allotted</th>
+            <th>Media Type</th>
+            <th>Active Media</th>
+            <th>Booked Media</th>
+            <th>Available Media</th>
+            <th>Booking %</th>
+            <th>Media Wise Revenue (₹)</th>
+            <th>Same Executive Booking</th>
+            <th>Total %</th>
+            <th>Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-area-hyd"></tbody>
+      </table>
+    </section>
+
+    <!-- DATA + BOOKING -->
+    <section>
+      <section-header>
+        <h2>City Wise Bookings (DATA + BOOKING)</h2>
+        <div class="section-sub">Top cities by total units and realized revenue.</div>
+        <div class="section-divider"></div>
+      </section-header>
+      <table id="tblCities">
+        <thead>
+          <tr>
+            <th>City</th>
+            <th class="numeric">Total Units</th>
+            <th class="numeric">Booked Units</th>
+            <th class="numeric">Available Units</th>
+            <th class="numeric">Occupancy %</th>
+            <th class="numeric">Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="hint">Showing consolidated numbers from DATA and BOOKING sheets.</div>
+    </section>
+
+    <section>
+      <section-header>
+        <h2>Area Allotted Wise Bookings (DATA + BOOKING)</h2>
+        <div class="section-sub">Multi-level view: Area → Location → Media Type.</div>
+        <div class="section-divider"></div>
+      </section-header>
+      <table id="tblAreas">
+        <thead>
+          <tr>
+            <th>Area Allotted</th>
+            <th>Location</th>
+            <th>Media Type</th>
+            <th class="numeric">Total Units</th>
+            <th class="numeric">Booked Units</th>
+            <th class="numeric">Available Units</th>
+            <th class="numeric">Occupancy %</th>
+            <th class="numeric">Revenue</th>
+            <th class="numeric">Total Booking %</th>
+            <th class="numeric">Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- COMMON AREA – CITY & MEDIA -->
+    <section>
+      <section-header>
+        <h2>Common Area Allotted – City & Media Type (Master + DATA + BOOKING)</h2>
+        <div class="section-sub">
+          Master & DATA/BOOKING rendu lo kuda same unna Area Allotted (employee) maatrame.
+        </div>
+        <div class="section-divider"></div>
+      </section-header>
+
+      <table id="tblCommonAreaCityMedia">
+        <thead>
+          <tr>
+            <th>Area Allotted</th>
+            <th>City</th>
+            <th>Media Type</th>
+            <th class="numeric">Total Units</th>
+            <th class="numeric">Booked Units</th>
+            <th class="numeric">Available Units</th>
+            <th class="numeric">Occupancy %</th>
+            <th class="numeric">Revenue (₹)</th>
+            <th class="numeric">Total Percentage</th>
+            <th class="numeric">Total Revenue</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* ==========================
+   GLOBAL STATE
+   ========================== */
+window.metricsMaster  = null;
+window.metricsDB      = null;
+window.mediaMasterAgg = null;
+window.mediaDBAgg     = null;
+window.locationMapDB  = null;
+
+let metricsChart = null;
+let mediaPieChart = null;
+let bookingRowsCache = [];
+
+// 🔁 RECENT SESSIONS HISTORY (for chart only)
+const SESSION_HISTORY_KEY = "sba_session_metrics_v1";
+
+// LOGIN SESSION KEY (no auto logout)
+const SESSION_KEY = "sba_dashboard_session";
+
+/* ---------- DAY-BY-DAY SNAPSHOT HELPERS ---------- */
+function _todayKey() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+function _yesterdayKey() {
+  const yesterday = new Date(Date.now() - 86400 * 1000);
+  return yesterday.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+function saveDailySnapshot(snapshot) {
+  try {
+    const key = "sba_daily_snapshot_v1";
+    let all = JSON.parse(localStorage.getItem(key) || "{}");
+    const today = _todayKey();
+    all[today] = snapshot;
+    const keys = Object.keys(all).sort().slice(-30);
+    const trimmed = {};
+    keys.forEach(k => { trimmed[k] = all[k]; });
+    localStorage.setItem(key, JSON.stringify(trimmed));
+  } catch (e) {
+    console.warn("Snapshot save failed", e);
+  }
+}
+
+function loadYesterdaySnapshot() {
+  try {
+    const key = "sba_daily_snapshot_v1";
+    const all = JSON.parse(localStorage.getItem(key) || "{}");
+    const y = _yesterdayKey();
+    return all[y] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ---------- METRIC CARD HELPER ---------- */
+function setMetric(idBase, current, previous, format){
+  const valueEl  = document.getElementById(idBase);
+  const changeEl = document.getElementById(idBase + "-change");
+  if(!valueEl || !changeEl) return;
+
+  current  = Number(current);
+  previous = (previous !== null && previous !== undefined) ? Number(previous) : null;
+
+  let display;
+  if(format === "currency"){
+    display = "₹" + current.toLocaleString("en-IN");
+  } else if(format === "percent"){
+    display = current.toFixed(2) + "%";
+  } else {
+    display = current.toLocaleString("en-IN");
+  }
+  valueEl.textContent = display;
+
+  if(previous === null || isNaN(previous)){
+    changeEl.textContent = "";
+    changeEl.className = "metric-change";
+    return;
+  }
+
+  const diff = current - previous;
+  if(diff === 0){
+    changeEl.textContent = "• stable";
+    changeEl.className = "metric-change trend-neutral";
+    return;
+  }
+
+  const up = diff > 0;
+  let diffText;
+  if(format === "currency"){
+    diffText = "₹" + Math.abs(diff).toLocaleString("en-IN");
+  } else if(format === "percent"){
+    diffText = Math.abs(diff).toFixed(2) + " pts";
+  } else {
+    diffText = Math.abs(diff).toLocaleString("en-IN");
+  }
+
+  changeEl.textContent = (up ? "▲ " : "▼ ") + diffText;
+  changeEl.className = "metric-change " + (up ? "trend-up" : "trend-down");
+}
+
+/* ---------- TOP CARDS + DAY-BY-DAY COMPARISON + SESSION HISTORY ---------- */
+function updateTopCards() {
+  if (!window.metricsMaster || !window.metricsDB) return;
+
+  const totalUnits =
+    window.metricsMaster.totalUnits + window.metricsDB.totalUnits;
+  const bookedUnits =
+    window.metricsMaster.bookedUnits + window.metricsDB.bookedUnits;
+  const availableUnits =
+    window.metricsMaster.availableUnits + window.metricsDB.availableUnits;
+  const totalRevenue =
+    window.metricsMaster.totalRevenue + window.metricsDB.totalRevenue;
+
+  const bookingPct = totalUnits ? (bookedUnits / totalUnits) * 100 : 0;
+
+  // 🔹 Yesterday snapshot tho compare
+  const yesterday = loadYesterdaySnapshot();
+  const prev = yesterday ? {
+    totalUnits: Number(yesterday.totalUnits || 0),
+    bookedUnits: Number(yesterday.bookedUnits || 0),
+    availableUnits: Number(yesterday.availableUnits || 0),
+    totalRevenue: Number(yesterday.totalRevenue || 0),
+    bookingPct: Number(yesterday.bookingPct || 0)
+  } : null;
+
+  setMetric("m-total",      totalUnits,    prev ? prev.totalUnits     : null, "number");
+  setMetric("m-booked",     bookedUnits,   prev ? prev.bookedUnits    : null, "number");
+  setMetric("m-available",  availableUnits,prev ? prev.availableUnits : null, "number");
+  setMetric("m-revenue",    totalRevenue,  prev ? prev.totalRevenue   : null, "currency");
+  setMetric("m-percentage", bookingPct,    prev ? prev.bookingPct     : null, "percent");
+
+  // 🔹 Session history chart కోసం (refresh ప్ర‌తి సారి కొత్త point జత)
+  let historyArr = [];
+  try {
+    historyArr = JSON.parse(localStorage.getItem(SESSION_HISTORY_KEY) || "[]");
+    if (!Array.isArray(historyArr)) historyArr = [];
+  } catch {
+    historyArr = [];
+  }
+
+  historyArr.push({
+    ts: Date.now(),
+    totalUnits,
+    bookedUnits,
+    availableUnits,
+    totalRevenue,
+    bookingPct
+  });
+
+  if (historyArr.length > 20) {
+    historyArr = historyArr.slice(-20);
+  }
+
+  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(historyArr));
+  renderMetricsChartFromSessions(historyArr);
+
+  // 🔹 Today snapshot save → రేపు compare చేయడానికి
+  const snapshot = {
+    ts: Date.now(),
+    totalUnits,
+    bookedUnits,
+    availableUnits,
+    totalRevenue,
+    bookingPct
+  };
+  saveDailySnapshot(snapshot);
+}
+
+/* ---------- RECENT SESSIONS CHART ---------- */
+function renderMetricsChartFromSessions(historyArr) {
+  const canvas = document.getElementById("metricsChart");
+  if (!canvas || !historyArr.length) return;
+
+  const labels = historyArr.map(item => {
+    const d = new Date(item.ts);
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  });
+
+  const bookedArr = historyArr.map(r => Number(r.bookedUnits    || 0));
+  const availArr  = historyArr.map(r => Number(r.availableUnits || 0));
+  const pctArr    = historyArr.map(r => Number(r.bookingPct     || 0));
+  const revArr    = historyArr.map(r => Number(r.totalRevenue   || 0));
+
+  const maxUnits = Math.max(...bookedArr, ...availArr, 0);
+  const maxPct   = Math.max(...pctArr, 0);
+
+  const ctx = canvas.getContext("2d");
+  const baseDs = {
+    borderWidth: 2,
+    fill: false,
+    tension: 0.35,
+    pointRadius: 3,
+    pointHoverRadius: 4
+  };
+
+  const data = {
+    labels,
+    datasets: [
+      Object.assign({}, baseDs, {
+        label: "Booked Units",
+        data: bookedArr,
+        yAxisID: "yUnits"
+      }),
+      Object.assign({}, baseDs, {
+        label: "Available Units",
+        data: availArr,
+        yAxisID: "yUnits"
+      }),
+      Object.assign({}, baseDs, {
+        label: "Booking %",
+        data: pctArr,
+        yAxisID: "yPct"
+      }),
+      Object.assign({}, baseDs, {
+        label: "Revenue",
+        data: revArr,
+        yAxisID: "yRev"
+      })
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    animation: { duration: 900, easing: "easeOutQuart" },
+    plugins: {
+      legend: { display: true, position: "bottom" },
+      tooltip: {
+        callbacks: {
+          label: function (ctx) {
+            const label = ctx.dataset.label || "";
+            const v = ctx.parsed.y;
+            if (label === "Revenue") {
+              return label + ": ₹" + Number(v).toLocaleString("en-IN");
+            }
+            if (label === "Booking %") {
+              return label + ": " + Number(v).toFixed(2) + "%";
+            }
+            return label + ": " + Number(v).toLocaleString("en-IN");
+          }
+        }
+      }
+    },
+    scales: {
+      yUnits: {
+        type: "linear",
+        position: "left",
+        title: { display: true, text: "Units" },
+        min: 0,
+        max: maxUnits ? maxUnits * 1.2 : 1,
+        grid: { display: true },
+        ticks: {
+          callback: val => Number(val).toLocaleString("en-IN")
+        }
+      },
+      yPct: {
+        type: "linear",
+        position: "right",
+        title: { display: true, text: "Booking %" },
+        min: 0,
+        max: Math.max(maxPct * 1.1, 100),
+        grid: { drawOnChartArea: false },
+        ticks: {
+          callback: val => val + "%"
+        }
+      },
+      yRev: {
+        type: "linear",
+        position: "right",
+        display: false,
+        grid: { drawOnChartArea: false }
+      },
+      x: {
+        grid: { display: false }
+      }
+    }
+  };
+
+  if (metricsChart) {
+    metricsChart.data = data;
+    metricsChart.options = options;
+    metricsChart.update();
+  } else {
+    metricsChart = new Chart(ctx, {
+      type: "line",
+      data,
+      options
+    });
+  }
+}
+
+/* ---------- SHEET URLS ---------- */
+const LIVE_SHEET_URL =
+  "https://opensheet.elk.sh/1SnZydoQAfpZp5jZQmCJPceeyXpp9jnTnC_m7g4DPzPI/Master";
+const DATA_URL =
+  "https://opensheet.elk.sh/1SnZydoQAfpZp5jZQmCJPceeyXpp9jnTnC_m7g4DPzPI/DATA";
+const BOOKING_URL =
+  "https://opensheet.elk.sh/1SnZydoQAfpZp5jZQmCJPceeyXpp9jnTnC_m7g4DPzPI/BOOKING";
+
+/* ---------- SESSION / LOGIN (NO AUTO-LOGOUT) ---------- */
+function doLogin() {
+  const u = document.getElementById("login-user").value.trim();
+  const p = document.getElementById("login-pass").value.trim();
+  const err = document.getElementById("login-error");
+
+  if (u === "SBA" && p === "1234") {
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({ user:"SBA", loginTime: Date.now() })
+    );
+    err.textContent = "";
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    initDashboard();
+  } else {
+    err.textContent = "Invalid User ID / Password.";
+  }
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("login-screen").style.display = "block";
+  document.getElementById("login-user").value = "";
+  document.getElementById("login-pass").value = "";
+  const err = document.getElementById("login-error");
+  if (err) err.textContent = "";
+}
+
+/* ---------- checkSessionOnLoad (no expiry) ---------- */
+function checkSessionOnLoad() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    initDashboard();
+  } catch {
+    localStorage.removeItem(SESSION_KEY);
+  }
+}
+
+/* ---------- INIT DASHBOARD ---------- */
+function initDashboard() {
+  document.getElementById("last-updated").textContent =
+    new Date().toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Kolkata"
+    });
+
+  loadMasterTables();
+  loadDataBookingDashboard();
+}
+
+/* ---------- MASTER TABLES ---------- */
+function loadMasterTables() {
+  fetch(LIVE_SHEET_URL)
+    .then(res => res.json())
+    .then(data => {
+      if (!Array.isArray(data) || !data.length) return;
+
+      window.sheetData = data;
+
+      const firstRow = data[0];
+      const keyMap = {};
+      Object.keys(firstRow).forEach(k => (keyMap[k.trim()] = k));
+
+      const keyBookedPrice = keyMap["Booked Price"]   || "Booked Price";
+      const keyStatus      = keyMap["Status"]         || "Status";
+      const keyBookingStat = keyMap["Booking Status"] || "Booking Status";
+      const keyCity        = keyMap["City"]           || "City";
+      const keyMediaType   = keyMap["Media Type"]     || "Media Type";
+      const keyArea        = keyMap["Area Allotted"]  || "Area Allotted";
+      const keyRegion      = keyMap["Region"]         || "Region";
+      const keyExecBooked =
+        keyMap["Executive Name"] ||
+        keyMap["Executive"]      ||
+        keyMap["Booked By"]      ||
+        "Executive Name";
+
+      const isActive = r =>
+        (r[keyStatus] || "").toString().toLowerCase().trim() === "active";
+      const isBooked = r => {
+        const s = (r[keyBookingStat] || "").toString().toLowerCase().trim();
+        return s === "booked" || s === "renewal pending";
+      };
+
+      const activeRows = data.filter(isActive);
+      const totalUnitsMaster     = activeRows.length;
+      const bookedUnitsMaster    = activeRows.filter(isBooked).length;
+      const availableUnitsMaster = activeRows.filter(r => {
+        const s = (r[keyBookingStat] || "").toString().toLowerCase().trim();
+        return s === "available" || s === "booked dates not given";
+      }).length;
+
+      let totalRevenueMaster = 0;
+      activeRows.forEach(r => {
+        if (!isBooked(r)) return;
+        let v = r[keyBookedPrice];
+        if (!v) return;
+        v = v.toString().replace(/₹|,/g,"").trim();
+        const n = Number(v);
+        if (!isNaN(n)) totalRevenueMaster += n;
+      });
+
+      window.metricsMaster = {
+        totalUnits: totalUnitsMaster,
+        bookedUnits: bookedUnitsMaster,
+        availableUnits: availableUnitsMaster,
+        totalRevenue: totalRevenueMaster
+      };
+      updateTopCards();
+
+      buildGroupTableMaster(
+        data,
+        keyCity,
+        "tbl-city",
+        isActive,
+        isBooked,
+        keyBookedPrice,
+        false
+      );
+      buildGroupTableMaster(
+        data,
+        keyMediaType,
+        "tbl-media-type",
+        isActive,
+        isBooked,
+        keyBookedPrice,
+        true
+      );
+
+      buildExecRevenueAllRegions(
+        data,
+        "tbl-area",
+        keyArea,
+        keyExecBooked,
+        keyStatus,
+        keyBookingStat,
+        keyBookedPrice
+      );
+      buildExecRevenueHyderabadExecMedia(
+        data,
+        "tbl-area-hyd",
+        keyArea,
+        keyMediaType,
+        keyRegion,
+        keyExecBooked,
+        keyStatus,
+        keyBookingStat,
+        keyBookedPrice
+      );
+
+      if (window.locationMapDB) {
+        buildCommonAreaCityMediaTable(window.locationMapDB);
+      }
+
+      // Master load ayyaka banner update (Master + Booking)
+      updateExpiryBanner(bookingRowsCache || []);
+    })
+    .catch(err => console.error("Master Sheet Load Error:", err));
+}
+
+function buildGroupTableMaster(
+  data,
+  key,
+  tableId,
+  isActive,
+  isBooked,
+  keyBookedPrice,
+  storeAsMasterMedia
+) {
+  const map = {};
+  data.forEach(r => {
+    if (!isActive(r)) return;
+    const name = (r[key] || "Unknown").toString().trim();
+    if (!map[name]) {
+      map[name] = { total: 0, booked: 0, available: 0, revenue: 0 };
+    }
+    map[name].total++;
+    if (isBooked(r)) {
+      map[name].booked++;
+      let v = r[keyBookedPrice];
+      if (v) {
+        v = v.toString().replace(/₹|,/g,"").trim();
+        const n = Number(v);
+        if (!isNaN(n)) map[name].revenue += n;
+      }
+    } else {
+      map[name].available++;
+    }
+  });
+
+  if (tableId === "tbl-city") {
+    const body = document.getElementById(tableId);
+    body.innerHTML = "";
+    Object.entries(map)
+      .sort((a,b)=>b[1].total - a[1].total)
+      .forEach(([name,o]) => {
+        const pct = o.total ? (o.booked/o.total*100).toFixed(2) : "0.00";
+        body.innerHTML += `
+          <tr>
+            <td>${name}</td>
+            <td>${o.total}</td>
+            <td>${o.booked}</td>
+            <td>${o.available}</td>
+            <td>${pct}%</td>
+            <td>₹${o.revenue.toLocaleString("en-IN")}</td>
+          </tr>`;
+      });
+  }
+  if (storeAsMasterMedia) {
+    window.mediaMasterAgg = map;
+    buildCombinedMediaTable();
+  }
+}
+
+/* Exec – All Regions */
+function buildExecRevenueAllRegions(
+  data,
+  tableId,
+  keyArea,
+  keyExecBooked,
+  keyStatus,
+  keyBookingStat,
+  keyBookedPrice
+) {
+  const isActive = r =>
+    (r[keyStatus] || "").toString().toLowerCase().trim() === "active";
+  const isBooked = r => {
+    const s = (r[keyBookingStat] || "").toString().toLowerCase().trim();
+    return s === "booked" || s === "renewal pending";
+  };
+
+  const map = {};
+  data.forEach(r => {
+    const areaExec = (r[keyArea] || "Unknown").toString().trim();
+    const bookExec = (r[keyExecBooked] || "").toString().trim();
+    if (!map[areaExec]) {
+      map[areaExec] = {
+        totAllotted: 0, bookedAllotted: 0, availAllotted: 0,
+        revSelf: 0, revOther: 0
+      };
+    }
+    if (bookExec && !map[bookExec]) {
+      map[bookExec] = {
+        totAllotted: 0, bookedAllotted: 0, availAllotted: 0,
+        revSelf: 0, revOther: 0
+      };
+    }
+  });
+
+  data.forEach(r => {
+    if (!isActive(r)) return;
+    const areaExec = (r[keyArea] || "Unknown").toString().trim();
+    const bookExec = (r[keyExecBooked] || "").toString().trim();
+    const aObj = map[areaExec];
+
+    aObj.totAllotted++;
+    if (isBooked(r)) aObj.bookedAllotted++;
+    else aObj.availAllotted++;
+
+    if (isBooked(r)) {
+      let v = r[keyBookedPrice];
+      if (v) {
+        v = v.toString().replace(/₹|,/g,"").trim();
+        const n = Number(v);
+        if (!isNaN(n) && n>0 && bookExec) {
+          if (bookExec === areaExec) map[bookExec].revSelf  += n;
+          else                       map[bookExec].revOther += n;
+        }
+      }
+    }
+  });
+
+  const body = document.getElementById(tableId);
+  body.innerHTML = "";
+  Object.entries(map)
+    .filter(([_,o]) => o.totAllotted>0 || o.revSelf+o.revOther>0)
+    .sort((a,b)=> (b[1].revSelf+b[1].revOther)-(a[1].revSelf+a[1].revOther))
+    .forEach(([name,o])=>{
+      const totalRev = o.revSelf+o.revOther;
+      const pct = o.totAllotted
+        ? (o.bookedAllotted/o.totAllotted*100).toFixed(2)
+        : "0.00";
+      body.innerHTML += `
+        <tr>
+          <td>${name}</td>
+          <td>${o.totAllotted}</td>
+          <td>${o.bookedAllotted}</td>
+          <td>${o.availAllotted}</td>
+          <td>${pct}%</td>
+          <td>₹${totalRev.toLocaleString("en-IN")}</td>
+        </tr>`;
+    });
+}
+
+/* Hyderabad exec + media */
+function buildExecRevenueHyderabadExecMedia(
+  data,
+  tableId,
+  keyArea,
+  keyMediaType,
+  keyRegion,
+  keyExecBooked,
+  keyStatus,
+  keyBookingStat,
+  keyBookedPrice
+) {
+  const isActive = r =>
+    (r[keyStatus] || "").toString().toLowerCase().trim() === "active";
+  const isBooked = r => {
+    const s = (r[keyBookingStat] || "").toString().toLowerCase().trim();
+    return s === "booked" || s === "renewal pending";
+  };
+
+  const hydExecSet = new Set();
+  data.forEach(r => {
+    if (!isActive(r)) return;
+    const region = (r[keyRegion] || "").toString().toLowerCase().trim();
+    if (region !== "hyderabad") return;
+    const areaExec = (r[keyArea] || "Unknown").toString().trim();
+    hydExecSet.add(areaExec);
+  });
+
+  const comboMap = {};
+  data.forEach(r => {
+    if (!isActive(r)) return;
+    const region = (r[keyRegion] || "").toString().toLowerCase().trim();
+    if (region !== "hyderabad") return;
+
+    const areaExec = (r[keyArea] || "Unknown").toString().trim();
+    if (!hydExecSet.has(areaExec)) return;
+    const media = (r[keyMediaType] || "Unknown").toString().trim();
+    const key = areaExec + "||" + media;
+
+    if (!comboMap[key]) {
+      comboMap[key] = {
+        exec: areaExec, media,
+        total: 0, booked: 0, avail: 0,
+        revSelf: 0, revOther: 0, selfBookings: 0
+      };
+    }
+    comboMap[key].total++;
+    if (isBooked(r)) comboMap[key].booked++;
+    else comboMap[key].avail++;
+  });
+
+  data.forEach(r => {
+    if (!isActive(r)) return;
+    const region = (r[keyRegion] || "").toString().toLowerCase().trim();
+    if (region !== "hyderabad" || !isBooked(r)) return;
+
+    const areaExec = (r[keyArea] || "Unknown").toString().trim();
+    const bookExec = (r[keyExecBooked] || "").toString().trim();
+    const media = (r[keyMediaType] || "Unknown").toString().trim();
+
+    let v = r[keyBookedPrice];
+    if (!v) return;
+    v = v.toString().replace(/₹|,/g,"").trim();
+    const n = Number(v);
+    if (isNaN(n) || n<=0) return;
+
+    const ensureCombo = exec=>{
+      const k = exec + "||" + media;
+      if (!comboMap[k]) {
+        comboMap[k] = {
+          exec, media,
+          total:0, booked:0, avail:0,
+          revSelf:0, revOther:0, selfBookings:0
+        };
+      }
+      return k;
+    };
+
+    if (bookExec && bookExec===areaExec && hydExecSet.has(bookExec)) {
+      const key = ensureCombo(bookExec);
+      comboMap[key].revSelf += n;
+      comboMap[key].selfBookings++;
+    }
+    if (bookExec && bookExec!==areaExec && hydExecSet.has(bookExec)) {
+      const key = ensureCombo(bookExec);
+      comboMap[key].revOther += n;
+    }
+  });
+
+  const body = document.getElementById(tableId);
+  body.innerHTML = "";
+
+  const combos = Object.values(comboMap)
+    .filter(o=>o.total>0 || o.revSelf+o.revOther>0);
+
+  const groupByExec = {};
+  combos.forEach(o=>{
+    if (!groupByExec[o.exec]) groupByExec[o.exec]=[];
+    groupByExec[o.exec].push(o);
+  });
+
+  const execOrder = Object.entries(groupByExec)
+    .map(([exec,rows])=>{
+      const totalRev = rows.reduce((s,r)=>s+r.revSelf+r.revOther,0);
+      return {exec,rows,totalRev};
+    })
+    .sort((a,b)=>b.totalRev-a.totalRev);
+
+  execOrder.forEach(group=>{
+    const rows = group.rows.sort(
+      (a,b)=> (b.revSelf+b.revOther)-(a.revSelf+a.revOther)
+    );
+    const rowspan = rows.length;
+    const execTotalRev = group.totalRev;
+    const execActive = rows.reduce((s,r)=>s+r.total,0);
+    const execBooked = rows.reduce((s,r)=>s+r.booked,0);
+    const execBookingPct = execActive ? (execBooked/execActive*100):0;
+
+    rows.forEach((o,idx)=>{
+      const mediaRev = o.revSelf+o.revOther;
+      const mediaOcc = o.total ? (o.booked/o.total*100):0;
+
+      const tr = document.createElement("tr");
+      if (idx===0){
+        const tdExec = document.createElement("td");
+        tdExec.rowSpan=rowspan;
+        tdExec.textContent=o.exec;
+        tr.appendChild(tdExec);
+      }
+
+      const tdMedia = document.createElement("td");
+      tdMedia.textContent=o.media;
+      tr.appendChild(tdMedia);
+
+      const tdTot = document.createElement("td");
+      tdTot.textContent=o.total;
+      tr.appendChild(tdTot);
+
+      const tdBook = document.createElement("td");
+      tdBook.textContent=o.booked;
+      tr.appendChild(tdBook);
+
+      const tdAvail = document.createElement("td");
+      tdAvail.textContent=o.avail;
+      tr.appendChild(tdAvail);
+
+      const tdOcc = document.createElement("td");
+      tdOcc.textContent=mediaOcc.toFixed(2)+"%";
+      tr.appendChild(tdOcc);
+
+      const tdRev = document.createElement("td");
+      tdRev.textContent="₹"+mediaRev.toLocaleString("en-IN");
+      tr.appendChild(tdRev);
+
+      const tdSelf = document.createElement("td");
+      tdSelf.textContent=o.selfBookings;
+      tr.appendChild(tdSelf);
+
+      if (idx===0){
+        const tdTotPct = document.createElement("td");
+        tdTotPct.rowSpan=rowspan;
+        tdTotPct.textContent=execBookingPct.toFixed(1)+"%";
+        tr.appendChild(tdTotPct);
+
+        const tdTotRev = document.createElement("td");
+        tdTotRev.rowSpan=rowspan;
+        tdTotRev.textContent="₹"+execTotalRev.toLocaleString("en-IN");
+        tr.appendChild(tdTotRev);
+      }
+
+      body.appendChild(tr);
+    });
+  });
+}
+
+/* ---------- DATA + BOOKING HELPERS ---------- */
+const num = v => Number(String(v || "0").replace(/[,₹]/g,"")) || 0;
+function getCell(row,...names){
+  for(const n of names){
+    if(row[n] !== undefined) return row[n];
+  }
+  return "";
+}
+function parseSheetDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  if (!s) return null;
+
+  let d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+
+  const parts = s.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    let [dStr, mStr, yStr] = parts;
+    if (yStr.length === 2) yStr = "20" + yStr;
+    const day = parseInt(dStr, 10);
+    const mon = parseInt(mStr, 10) - 1;
+    const yr  = parseInt(yStr, 10);
+    d = new Date(yr, mon, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+/* ---------- DATA + BOOKING LOAD ---------- */
+function loadDataBookingDashboard() {
+  Promise.all([
+    fetch(DATA_URL).then(r => r.json()).catch(() => []),
+    fetch(BOOKING_URL).then(r => r.json()).catch(() => [])
+  ])
+    .then(([dataRows, bookingRows]) => {
+      if (!Array.isArray(dataRows)) dataRows = [];
+      if (!Array.isArray(bookingRows)) bookingRows = [];
+
+      bookingRowsCache = bookingRows;
+      buildDashboardFromDataBooking(dataRows, bookingRowsCache);
+
+      // DATA + BOOKING load ayyaka banner update
+      updateExpiryBanner(bookingRowsCache);
+    })
+    .catch(err => console.error("DATA/BOOKING Load Error:", err));
+}
+
+/* ---------- DATA + BOOKING BUILD ---------- */
+function buildDashboardFromDataBooking(dataRows, bookingRows) {
+  const locationMap = {};
+
+  /* DATA sheet */
+  dataRows.forEach(row=>{
+    const status = String(getCell(row, "Media Status") || "active").toLowerCase();
+    if (status!=="active") return;
+
+    const location = String(getCell(row,"Location"," Location","LOCATION")).trim();
+    const city     = String(getCell(row,"City"," CITY")).trim();
+    const mediaType= String(getCell(row,"Media Type","Media type"," Media Type")).trim();
+    const area     = String(getCell(row,"Area Allotted","Area allotted"," Area Allotted")).trim();
+    if (!location && !city && !mediaType) return;
+
+    const qty   = num(getCell(row,"Quantity"));
+    const avail = num(getCell(row,"Available Qty","Available "," Available Qty"));
+
+    const key = `${location}||${city}||${mediaType}`;
+    if (!locationMap[key]){
+      locationMap[key] = {
+        location, city, mediaType, area,
+        totalQty:0, availableQty:0, bookedQty:0, revenue:0
+      };
+    }
+    locationMap[key].totalQty     += qty;
+    locationMap[key].availableQty += avail;
+  });
+
+  /* BOOKING sheet */
+  bookingRows.forEach(row=>{
+    const location = String(getCell(row,"Location"," Location","LOCATION")).trim();
+    const city     = String(getCell(row,"City"," CITY")).trim();
+    let mediaType  = String(getCell(row,"Media Type","Media type"," Media Type")).trim();
+
+    const booked  = num(getCell(row,"Booked Qty"," Booked Qty"));
+    const revenue = num(getCell(row,"Net Price"));
+    if (!location && !city && !mediaType && booked===0 && revenue===0) return;
+
+    if (!mediaType){
+      const matchKey = Object.keys(locationMap).find(k=>{
+        const [loc,c] = k.split("||");
+        return loc===location && c===city;
+      });
+      if (matchKey){
+        locationMap[matchKey].bookedQty += booked;
+        locationMap[matchKey].revenue   += revenue;
+        return;
+      }
+    }
+
+    const key = `${location}||${city}||${mediaType}`;
+    if (!locationMap[key]){
+      locationMap[key] = {
+        location, city, mediaType, area:"",
+        totalQty:0, availableQty:0, bookedQty:0, revenue:0
+      };
+    }
+    locationMap[key].bookedQty += booked;
+    locationMap[key].revenue   += revenue;
+  });
+
+  window.locationMapDB = locationMap;
+
+  /* totals + aggregations */
+  let totalUnits=0, totalAvailable=0, totalBooked=0, totalRevenue=0;
+  const cityMap  = {};
+  const mediaMap = {};
+  const areaGroup= {};
+
+  Object.values(locationMap).forEach(loc=>{
+    totalUnits     += loc.totalQty;
+    totalAvailable += loc.availableQty;
+    totalBooked    += loc.bookedQty;
+    totalRevenue   += loc.revenue;
+
+    const cKey = loc.city || "Unknown";
+    if (!cityMap[cKey]){
+      cityMap[cKey]={city:cKey,total:0,booked:0,available:0,revenue:0};
+    }
+    cityMap[cKey].total     += loc.totalQty;
+    cityMap[cKey].booked    += loc.bookedQty;
+    cityMap[cKey].available += loc.availableQty;
+    cityMap[cKey].revenue   += loc.revenue;
+
+    const mKey = loc.mediaType || "Unknown";
+    if (!mediaMap[mKey]){
+      mediaMap[mKey]={type:mKey,total:0,booked:0,available:0,revenue:0};
+    }
+    mediaMap[mKey].total     += loc.totalQty;
+    mediaMap[mKey].booked    += loc.bookedQty;
+    mediaMap[mKey].available += loc.availableQty;
+    mediaMap[mKey].revenue   += loc.revenue;
+
+    const areaName  = loc.area || "Unknown";
+    const locLabel  = loc.location || loc.city || "Unknown";
+    const mediaLabel= loc.mediaType || "Unknown";
+
+    if (!areaGroup[areaName]){
+      areaGroup[areaName]={total:0,booked:0,available:0,revenue:0,locations:{}};
+    }
+    const areaObj = areaGroup[areaName];
+    areaObj.total     += loc.totalQty;
+    areaObj.booked    += loc.bookedQty;
+    areaObj.available += loc.availableQty;
+    areaObj.revenue   += loc.revenue;
+
+    if (!areaObj.locations[locLabel]){
+      areaObj.locations[locLabel]={total:0,booked:0,available:0,revenue:0,media:{}};
+    }
+    const locObj = areaObj.locations[locLabel];
+    locObj.total     += loc.totalQty;
+    locObj.booked    += loc.bookedQty;
+    locObj.available += loc.availableQty;
+    locObj.revenue   += loc.revenue;
+
+    if (!locObj.media[mediaLabel]){
+      locObj.media[mediaLabel]={total:0,booked:0,available:0,revenue:0};
+    }
+    const medObj = locObj.media[mediaLabel];
+    medObj.total     += loc.totalQty;
+    medObj.booked    += loc.bookedQty;
+    medObj.available += loc.availableQty;
+    medObj.revenue   += loc.revenue;
+  });
+
+  window.metricsDB = {
+    totalUnits,
+    bookedUnits: totalBooked,
+    availableUnits: totalAvailable,
+    totalRevenue
+  };
+  window.mediaDBAgg = mediaMap;
+  updateTopCards();
+  buildCombinedMediaTable();
+
+  /* city table */
+  const cityBody = document.querySelector("#tblCities tbody");
+  cityBody.innerHTML = "";
+  Object.values(cityMap)
+    .sort((a,b)=>b.total-a.total)
+    .forEach(c=>{
+      const occ = c.total ? (c.booked/c.total*100):0;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${c.city}</td>
+        <td class="numeric">${c.total}</td>
+        <td class="numeric">${c.booked}</td>
+        <td class="numeric">${c.available}</td>
+        <td class="numeric">${occ.toFixed(2)}%</td>
+        <td class="numeric">₹${c.revenue.toLocaleString("en-IN")}</td>`;
+      cityBody.appendChild(tr);
+    });
+
+  /* area table */
+  const areaBody = document.querySelector("#tblAreas tbody");
+  areaBody.innerHTML = "";
+  Object.entries(areaGroup).forEach(([areaName,areaData])=>{
+    const areaBookingPct = areaData.total
+      ? (areaData.booked/areaData.total*100).toFixed(2)
+      : "0.00";
+
+    let rowsInArea = 0;
+    Object.values(areaData.locations).forEach(locData=>{
+      rowsInArea += Object.keys(locData.media).length;
+    });
+
+    let areaFirstRow=true;
+
+    Object.entries(areaData.locations).forEach(([locName,locData])=>{
+      const mediaEntries = Object.entries(locData.media);
+      let locFirstRow=true;
+
+      mediaEntries.forEach(([mediaName,medData])=>{
+        const occ = medData.total
+          ? (medData.booked/medData.total*100).toFixed(2)
+          : "0.00";
+
+        const tr = document.createElement("tr");
+        let html="";
+
+        if (areaFirstRow){
+          html += `<td rowspan="${rowsInArea}">${areaName}</td>`;
+          areaFirstRow=false;
+        }
+        if (locFirstRow){
+          html += `<td rowspan="${mediaEntries.length}">${locName}</td>`;
+          locFirstRow=false;
+        }
+
+        html += `
+          <td>${mediaName}</td>
+          <td class="numeric">${medData.total}</td>
+          <td class="numeric">${medData.booked}</td>
+          <td class="numeric">${medData.available}</td>
+          <td class="numeric">${occ}%</td>
+          <td class="numeric">₹${medData.revenue.toLocaleString("en-IN")}</td>
+        `;
+
+        if (html.includes(`rowspan="${rowsInArea}"`)){
+          html += `
+            <td rowspan="${rowsInArea}" class="numeric">${areaBookingPct}%</td>
+            <td rowspan="${rowsInArea}" class="numeric">₹${areaData.revenue.toLocaleString("en-IN")}</td>
+          `;
+        }
+
+        tr.innerHTML = html;
+        areaBody.appendChild(tr);
+      });
+    });
+  });
+
+  buildCommonAreaCityMediaTable(locationMap);
+}
+
+/* ---------- EXPIRY BANNER (MASTER + BOOKING) ---------- */
+function updateExpiryBanner(bookingRows) {
+  const banner = document.getElementById("expiryBanner");
+  const track  = document.getElementById("expiryTrack");
+  if (!banner || !track) return;
+
+  const master = window.sheetData || [];
+  if (!master.length && (!Array.isArray(bookingRows) || !bookingRows.length)) {
+    banner.style.display = "none";
+    return;
+  }
+
+  track.innerHTML = `<span class="expiry-title" style="color:#000;">⚠ Ending / Ended Campaigns:</span>`;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const threeDaysLater = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo   = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const all = [];
+
+  // MASTER SHEET – booked / renewal only, last 7 days past + next 3 days
+  master.forEach(row => {
+    const bStatus = String(
+      getCell(row, "Booking Status", "Booking status", " Booking Status")
+    ).toLowerCase().trim();
+    if (!(bStatus === "booked" || bStatus === "renewal pending")) return;
+
+    const client = String(
+      getCell(row, "Client name", "Client Name", "Client", "CLIENT")
+    ).trim() || "Unknown Client";
+
+    const endRaw = getCell(
+      row,
+      "End Date", "End date", " End Date", "Campaign End Date", "End_Date"
+    );
+    const endDate = parseSheetDate(endRaw);
+    if (!endDate) return;
+
+    endDate.setHours(0,0,0,0);
+    if (endDate < sevenDaysAgo || endDate > threeDaysLater) return;
+
+    const city  = String(getCell(row, "City", " CITY")).trim();
+    const media = String(
+      getCell(row, "Media Type", "Media type", " Media Type")
+    ).trim();
+
+    all.push({ client, endDate, city, media, source: "Master" });
+  });
+
+  // BOOKING SHEET – same window
+  if (!Array.isArray(bookingRows)) bookingRows = [];
+
+  bookingRows.forEach(row => {
+    const client = String(
+      getCell(row,"Client Name","Client"," Client Name")
+    ).trim();
+    const endRaw = getCell(row,"End Date","End date"," END DATE");
+    if (!client || !endRaw) return;
+
+    const endDate = parseSheetDate(endRaw);
+    if (!endDate) return;
+    endDate.setHours(0,0,0,0);
+
+    if (endDate < sevenDaysAgo || endDate > threeDaysLater) return;
+
+    const city  = String(getCell(row, "City", " CITY")).trim();
+    const media = String(
+      getCell(row, "Media Type", "Media type", " Media Type")
+    ).trim();
+
+    all.push({ client, endDate, city, media, source: "Booking" });
+  });
+
+  if (!all.length) {
+    banner.style.display = "none";
+    return;
+  }
+
+  all.sort((a, b) => a.endDate - b.endDate);
+
+  const seen = new Set();
+
+  all.forEach(item => {
+    const key = item.client.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    const diffDays = Math.round(
+      (item.endDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)
+    );
+
+    const dateLabel = item.endDate.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short"
+    });
+
+    let statusText = "";
+    if (diffDays < 0) {
+      statusText = "❌ Ended";
+    } else if (diffDays === 0) {
+      statusText = "✅ Ending Today";
+    } else {
+      statusText = `⏳ In ${diffDays} day${diffDays>1 ? "s" : ""}`;
+    }
+
+    const pill = document.createElement("span");
+    pill.className = "expiry-pill";
+
+    let text = `${item.client} – ${dateLabel} (${statusText})`;
+    if (item.city || item.media) {
+      text += ` • ${item.city || ""}${item.city && item.media ? " / " : ""}${item.media || ""}`;
+    }
+
+    pill.textContent = text;
+    track.appendChild(pill);
+  });
+
+  const count = track.querySelectorAll(".expiry-pill").length;
+  if (count > 0) {
+    const duration = Math.max(40, count * 8); // more items → slower
+    track.style.animationDuration = duration + "s";
+    banner.style.display = "flex";
+  } else {
+    banner.style.display = "none";
+  }
+}
+
+/* ---------- COMBINED MEDIA TYPE TABLE + PIE ---------- */
+function buildCombinedMediaTable() {
+  const master = window.mediaMasterAgg;
+  const db     = window.mediaDBAgg;
+  if (!master || !db) return;
+
+  const combined={};
+  function addFrom(map){
+    Object.entries(map).forEach(([name,o])=>{
+      const key = name || "Unknown";
+      if (!combined[key]){
+        combined[key]={total:0,booked:0,available:0,revenue:0};
+      }
+      combined[key].total     += o.total     || 0;
+      combined[key].booked    += o.booked    || 0;
+      combined[key].available += o.available || 0;
+      combined[key].revenue   += o.revenue   || 0;
+    });
+  }
+  addFrom(master);
+  addFrom(db);
+
+  const body = document.querySelector("#tbl-media-type");
+  if (!body) return;
+  body.innerHTML = "";
+  Object.entries(combined)
+    .sort((a,b)=>(b[1].total||0)-(a[1].total||0))
+    .forEach(([name,o])=>{
+      const pct = o.total ? (o.booked/o.total*100):0;
+      body.innerHTML += `
+        <tr>
+          <td>${name}</td>
+          <td class="numeric">${o.total}</td>
+          <td class="numeric">${o.booked}</td>
+          <td class="numeric">${o.available}</td>
+          <td class="numeric">${pct.toFixed(2)}%</td>
+          <td class="numeric">₹${o.revenue.toLocaleString("en-IN")}</td>
+        </tr>`;
+    });
+
+  renderMediaPieChart(combined);
+}
+
+/* MEDIA TYPE BOOKING PIE CHART */
+function renderMediaPieChart(combinedMap) {
+  const canvas = document.getElementById("mediaPieChart");
+  if (!canvas) return;
+
+  const labels = [];
+  const values = [];
+  Object.entries(combinedMap).forEach(([name,o]) => {
+    const booked = o.booked || 0;
+    if (booked > 0) {
+      labels.push(name);
+      values.push(booked);
+    }
+  });
+
+  if (!labels.length) return;
+
+  const ctx = canvas.getContext("2d");
+
+  if (mediaPieChart) {
+    mediaPieChart.data.labels = labels;
+    mediaPieChart.data.datasets[0].data = values;
+    mediaPieChart.update();
+    return;
+  }
+
+  mediaPieChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels,
+      datasets: [{
+        data: values
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right"
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((s,v)=>s+v,0);
+              const value = ctx.parsed;
+              const pct = total ? (value/total*100).toFixed(1) : "0.0";
+              return `${ctx.label}: ${value.toLocaleString("en-IN")} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// COMMON AREA TABLE – MASTER + DATA/BOOKING
+function buildCommonAreaCityMediaTable(locationMap) {
+  const body = document.querySelector("#tblCommonAreaCityMedia tbody");
+  if (!body) return;
+  body.innerHTML = "";
+
+  const masterData = window.sheetData || [];
+  if (!masterData.length) return;
+
+  const masterAreaSet = new Set();
+  masterData.forEach(r => {
+    const area = String(
+      getCell(r, "Area Allotted", "Area allotted", " Area Allotted")
+    ).trim();
+    if (area) masterAreaSet.add(area);
+  });
+
+  const dbAreaSet = new Set();
+  Object.values(locationMap).forEach(loc => {
+    const area = String(loc.area || "").trim();
+    if (area) dbAreaSet.add(area);
+  });
+
+  const commonAreas = new Set();
+  dbAreaSet.forEach(a => {
+    if (masterAreaSet.has(a)) commonAreas.add(a);
+  });
+  if (!commonAreas.size) return;
+
+  const agg = {};
+
+  // Master side
+  masterData.forEach(r => {
+    const areaName = String(
+      getCell(r, "Area Allotted", "Area allotted", " Area Allotted")
+    ).trim();
+    if (!areaName || !commonAreas.has(areaName)) return;
+
+    const status = String(getCell(r, "Status", " Status", "STATUS"))
+      .toLowerCase()
+      .trim();
+    if (status !== "active") return;
+
+    const bookingStatus = String(
+      getCell(r, "Booking Status", "Booking status", " Booking Status")
+    )
+      .toLowerCase()
+      .trim();
+
+    const cityName = String(getCell(r, "City", " CITY")).trim() || "Unknown";
+    const mediaName =
+      String(getCell(r, "Media Type", "Media type", " Media Type"))
+        .trim() || "Unknown";
+
+    const key = areaName + "||" + cityName + "||" + mediaName;
+    if (!agg[key]) {
+      agg[key] = {
+        area: areaName,
+        city: cityName,
+        media: mediaName,
+        total: 0,
+        booked: 0,
+        available: 0,
+        revenue: 0
+      };
+    }
+
+    const row = agg[key];
+    row.total += 1;
+
+    const isBooked =
+      bookingStatus === "booked" || bookingStatus === "renewal pending";
+
+    if (isBooked) {
+      row.booked += 1;
+      let v = getCell(r, "Booked Price", "Booked price", " Booked Price");
+      if (v) {
+        v = v.toString().replace(/₹|,/g, "").trim();
+        const n = Number(v);
+        if (!isNaN(n)) row.revenue += n;
+      }
+    } else {
+      row.available += 1;
+    }
+  });
+
+  // DATA + BOOKING side
+  Object.values(locationMap).forEach(loc => {
+    const areaName = (loc.area || "Unknown").toString().trim();
+    if (!commonAreas.has(areaName)) return;
+
+    const cityName = (loc.city || "Unknown").toString().trim() || "Unknown";
+    const mediaName =
+      (loc.mediaType || "Unknown").toString().trim() || "Unknown";
+
+    const key = areaName + "||" + cityName + "||" + mediaName;
+    if (!agg[key]) {
+      agg[key] = {
+        area: areaName,
+        city: cityName,
+        media: mediaName,
+        total: 0,
+        booked: 0,
+        available: 0,
+        revenue: 0
+      };
+    }
+
+    const row = agg[key];
+    row.total += loc.totalQty || 0;
+    row.booked += loc.bookedQty || 0;
+    row.available += loc.availableQty || 0;
+    row.revenue += loc.revenue || 0;
+  });
+
+  const areaGroups = {};
+  Object.values(agg).forEach(r => {
+    if (!areaGroups[r.area]) {
+      areaGroups[r.area] = {
+        rows: [],
+        total: 0,
+        booked: 0,
+        available: 0,
+        revenue: 0
+      };
+    }
+    const g = areaGroups[r.area];
+    g.rows.push(r);
+    g.total += r.total;
+    g.booked += r.booked;
+    g.available += r.available;
+    g.revenue += r.revenue;
+  });
+
+  const orderedAreas = Object.entries(areaGroups).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
+
+  orderedAreas.forEach(([areaName, g]) => {
+    const rows = g.rows.sort(
+      (a, b) =>
+        a.city.localeCompare(b.city) || a.media.localeCompare(b.media)
+    );
+
+    const span = rows.length;
+    const areaPct = g.total ? (g.booked / g.total) * 100 : 0;
+
+    rows.forEach((r, idx) => {
+      const occ = r.total ? (r.booked / r.total) * 100 : 0;
+      const tr = document.createElement("tr");
+
+      if (idx === 0) {
+        const tdArea = document.createElement("td");
+        tdArea.rowSpan = span;
+        tdArea.textContent = areaName;
+        tr.appendChild(tdArea);
+      }
+
+      const tdCity = document.createElement("td");
+      tdCity.textContent = r.city;
+      tr.appendChild(tdCity);
+
+      const tdMedia = document.createElement("td");
+      tdMedia.textContent = r.media;
+      tr.appendChild(tdMedia);
+
+      const tdTotal = document.createElement("td");
+      tdTotal.className = "numeric";
+      tdTotal.textContent = r.total;
+      tr.appendChild(tdTotal);
+
+      const tdBooked = document.createElement("td");
+      tdBooked.className = "numeric";
+      tdBooked.textContent = r.booked;
+      tr.appendChild(tdBooked);
+
+      const tdAvail = document.createElement("td");
+      tdAvail.className = "numeric";
+      tdAvail.textContent = r.available;
+      tr.appendChild(tdAvail);
+
+      const tdOcc = document.createElement("td");
+      tdOcc.className = "numeric";
+      tdOcc.textContent = occ.toFixed(2) + "%";
+      tr.appendChild(tdOcc);
+
+      const tdRev = document.createElement("td");
+      tdRev.className = "numeric";
+      tdRev.textContent = "₹" + r.revenue.toLocaleString("en-IN");
+      tr.appendChild(tdRev);
+
+      if (idx === 0) {
+        const tdTP = document.createElement("td");
+        tdTP.rowSpan = span;
+        tdTP.className = "numeric";
+        tdTP.textContent = areaPct.toFixed(2) + "%";
+        tr.appendChild(tdTP);
+
+        const tdTR = document.createElement("td");
+        tdTR.rowSpan = span;
+        tdTR.className = "numeric";
+        tdTR.textContent = "₹" + g.revenue.toLocaleString("en-IN");
+        tr.appendChild(tdTR);
+      }
+
+      body.appendChild(tr);
+    });
+  });
+}
+
+/* ---------- BUTTONS & AUTO REFRESH ---------- */
+function refreshData(){ window.location.reload(); }
+
+function downloadExcel(){
+  const data = window.sheetData || [];
+  if (!data.length){
+    alert("Data inka load avvaledu. Konchem taruvata try cheyyandi.");
+    return;
+  }
+  const cols=[
+    "Media Code","City","Client name","Region",
+    "Area Allotted","Media Type","Status","Booking Status","Booked Price"
+  ];
+  let csv = cols.join(",")+"\n";
+  data.forEach(row=>{
+    const line = cols.map(c=>{
+      let v = row[c]==null ? "" : row[c].toString();
+      v = v.replace(/"/g,'""');
+      return `"${v}"`;
+    }).join(",");
+    csv += line+"\n";
+  });
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download="MediaInventory_SriBalaji.csv";
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadPDF(){ window.print(); }
+
+// ప్రతి 5 నిమిషాలకి data మళ్లీ load అవుతుంది (auto-refresh)
+// auto-logout లేదు, కేవలం initDashboard మాత్రమే call అవుతుంది
+setInterval(()=>{
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (raw) initDashboard();
+},300000);
+
+/* INIT */
+checkSessionOnLoad();
+</script>
+</body>
+</html>
